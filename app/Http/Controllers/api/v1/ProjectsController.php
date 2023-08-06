@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\api\v1;
 
 use App\Http\Controllers\api\ApiController;
+use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class ProjectsController extends ApiController
 {
@@ -30,7 +32,24 @@ class ProjectsController extends ApiController
      */
     public function store(Request $request)
     {
-        //
+        $inputs = $request->all();
+
+        $validator = Validator::make($inputs,[
+            'name'=>'required',
+            'link'=>'nullable',
+            'start_date'=>'required|date',
+            'end_date'=>'nullable|date',
+            'description'=>'nullable'
+        ]);
+
+        if($validator->fails())
+        {
+            return $this->sendError('validation error',$validator->errors());
+        }
+
+        $project = Project::create($inputs);
+
+        return $this->sendCreatedResponse(new ProjectResource($project));
     }
 
     /**
