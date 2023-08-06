@@ -4,19 +4,29 @@ namespace App\Http\Controllers\api\v1;
 
 use App\Http\Controllers\api\ApiController;
 use App\Http\Resources\ProjectResource;
+use App\Models\Category;
 use App\Models\Project;
+use App\Models\ProjectCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class ProjectsController extends ApiController
 {
+    protected array $rules = [
+        'name'=>'required',
+        'link'=>'nullable',
+        'start_date'=>'required|date',
+        'end_date'=>'nullable|date',
+        'description'=>'nullable',
+        'category'=>'required',
+    ];
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
         $projects = Project::all();
-        return $this->sendResponse($projects, 'projects found');
+        return $this->sendResponse(ProjectResource::collection($projects), 'projects found');
     }
 
     /**
@@ -34,13 +44,7 @@ class ProjectsController extends ApiController
     {
         $inputs = $request->all();
 
-        $validator = Validator::make($inputs,[
-            'name'=>'required',
-            'link'=>'nullable',
-            'start_date'=>'required|date',
-            'end_date'=>'nullable|date',
-            'description'=>'nullable'
-        ]);
+        $validator = Validator::make($inputs, $this->rules);
 
         if($validator->fails())
         {
@@ -49,7 +53,14 @@ class ProjectsController extends ApiController
 
         $project = Project::create($inputs);
 
-        return $this->sendCreatedResponse(new ProjectResource($project));
+        $category = Category::firstOrCreate(['name' => $inputs['category']]);
+
+        ProjectCategory::create([
+            'project_id'=>$project->id,
+            'category_id'=>$category->id,
+        ]);
+
+        return $this->sendCreatedResponse(new ProjectResource($project), "created successfully");
     }
 
     /**
